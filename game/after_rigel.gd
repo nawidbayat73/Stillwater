@@ -8,9 +8,11 @@ const TEAL := Color("#99c5b9")
 const SLATE := Color("#44585c")
 const WOOD := Color("#695048")
 const STEEL := Color("#38565a")
+const ShoreArtwork = preload("res://shore_art.gd")
 const SAVE := "user://last_tide_restored.cfg"
 
 var base
+var shore_art := ShoreArtwork.new()
 var area: Node3D
 var body: CharacterBody3D
 var camera: Camera3D
@@ -279,6 +281,7 @@ func build(index: int) -> void:
 	body.rotation=Vector3.ZERO
 	body.velocity=Vector3.ZERO
 	camera.rotation=Vector3.ZERO
+	camera.far=95
 	camera.make_current()
 	torch.show()
 	match index:
@@ -417,112 +420,69 @@ func station() -> void:
 	control("station_end",Vector3(0,0,-42.8),"CONTAINMENT","Eindämmungsschleuse öffnen")
 
 func shore(storm: bool) -> void:
-	set_atmosphere(not storm,storm)
-	body.position=Vector3(-30,.1,.9)
-	body.rotation.y=-PI/2
-	box(Vector3(0,-.24,0),Vector3(81,.48,48),Color("#515a4e"),true)
-	box(Vector3(0,.012,0),Vector3(81,.024,8.25),Color("#3a4444"))
-	for side in [-1,1]:
-		box(Vector3(0,.047,side*5.30),Vector3(81,.1,2.41),Color("#75807a"))
-		box(Vector3(side*40,1.69,0),Vector3(.8,3.4,48),Color("#49564b"),true)
-		box(Vector3(0,1.69,side*23.8),Vector3(80,3.4,.38),Color("#49564b"),true)
-		for i in 6:
-			old_mesh("street_lamp",Vector3(-33+i*13.2,.02,side*5.8),0,1.0,false)
-	for i in 33:
-		box(Vector3(-39+i*2.4,.031,0),Vector3(.86,.014,.085),Color("#a99777"))
-		old_mesh("cliff_1",Vector3(-43+i*2.88,-.4,-27.4-.7*sin(i)),i*.38,1.1,false)
-	for i in 19:
-		old_mesh("fir_0",Vector3(-46+i*5,-.10,27+4*cos(i)),i*.40,1.2,false)
-	water(Vector3(0,-.19,-43),Vector2(160,39),storm)
-	old_mesh("trawler",Vector3(-21,-.12,-33),-.26,.74,false)
-	old_mesh("lighthouse",Vector3(34,0,-39),0,1.0,false)
-	for i in 3:
-		var x:= -25.0+i*16
-		home(Vector3(x,0,-11),0,i)
-		home(Vector3(x,0,11),PI,i+3)
-	var clockhouse:=Vector3(25,0,-11)
-	home(clockhouse,0,6)
-	pipe(clockhouse+Vector3(0,3,0),clockhouse+Vector3(0,7.8,0),1.29,SLATE)
-	ring(clockhouse+Vector3(0,6.7,1.32),.74,.05,AMBER,.5)
-	pipe(clockhouse+Vector3(0,6.7,1.38),clockhouse+Vector3(-.48,6.94,1.38),.034,AMBER)
+	world_env=shore_art.atmosphere(storm)
+	camera.environment=world_env
+	camera.far=180
+	light.rotation_degrees=Vector3(-25,-121,0)
+	light.light_color=Color("#91afbf") if storm else Color("#ffe5c4")
+	light.light_energy=.35 if storm else .92
+	light.directional_shadow_max_distance=71
+	light.directional_shadow_mode=DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+	light.shadow_bias=.085
+	light.shadow_normal_bias=.90
+	body.position=Vector3(-32.25,.10,1.60)
+	body.rotation.y=-PI/2-.13
+
+	var waterfront:=shore_art.attach("ufer",area,storm)
+	if waterfront==null:
+		say_line("Die Uferstraße konnte nicht geladen werden.",8)
+		return
+	shore_art.water(area,Vector3(0,-.32,-69),Vector2(245,95),storm)
+	old_mesh("trawler",Vector3(-25.62,-.49,-29.37),-.17,.73,false)
+	old_mesh("lighthouse",Vector3(28.02,1.15,-41.93),.11,.99,false)
+	shore_art.play_loop(area,"coast",Vector3(-11,.6,-23.2),-21 if storm else -25)
 	if storm:
-		scene_data.street_water=water(Vector3(0,-.12,0),Vector2(79,8.3),true)
-		control("post",Vector3(-25,0,5.1),"1 / KÜSTENPOST","Relais 1 schließen")
-		control("ward",Vector3(7,0,-5.7),"2 / HAUS WARD","Relais 2 schließen")
-		control("clock",Vector3(25,0,-5.75),"3 / UHRWERK","Relais 3 schließen")
-		scene_data.roadblock=box(Vector3(17,-3,0),Vector3(.64,2.45,10.65),SLATE,true)
+		shore_art.play_loop(area,"rain",Vector3(3,3,0),-24)
+	var van:=old_mesh("minivan",Vector3(-36.31,.025,3.26),-PI/2,.88,true)
+	van.name="Lieferwagen"
+	if storm:
+		var overlay_set:=shore_art.attach("sturm",area,true)
+		if overlay_set==null:
+			say_line("Die Flutkulisse konnte nicht geladen werden.",8)
+			return
+		scene_data.street_water=shore_art.water(area,Vector3(0,-.12,0),Vector2(79,8.3),true,true)
+		for relay in [["post","Küstenpost",1],["ward","Haus Ward",2],["clock","Uhrwerk",3]]:
+			var position:=shore_art.point_at("sturm",relay[0])
+			plate(relay[0],position,"Relais %d schließen"%relay[2],Vector3(.86,.67,.48))
+			var post: bool = relay[0]=="post"
+			plaque("%02d   %s"%[relay[2],str(relay[1]).to_upper()],position+Vector3(0,.45,.19 if post else -.19),
+				23,PI if post else 0.0)
+		var tower:=shore_art.point_at("sturm","tower")
+		plate("tower",tower,"In die Lichtkammer hinabsteigen",Vector3(.94,.79,.55))
+		plaque("BLACKCLIFF  /  W–06",tower+Vector3(0,.47,-.16),27)
+		var gate:=overlay_set.find_child("HighWaterGate",true,false) as Node3D
+		scene_data.roadblock=gate
+		shore_art.add_colliders(gate,[[0.0,0.0,0.0,.66,2.45,9.20,0.0]])
+		gate.position.y=-3.0
 		scene_data.guard=figure(Vector3(16.4,.05,-1.3),true,-PI/2)
 		scene_data.guard.hide()
-		for p in [Vector3(7,.05,-15.6),Vector3(7,.05,-18.4),Vector3(14,.05,-18.4),Vector3(21,.05,-18.4)]:
-			box(p,Vector3(.27,.08,.50),AMBER,false,null,1.35)
 		if task==3:
 			surge=0
-			scene_data.roadblock.position.y=1.225
+			gate.position.y=1.225
 			scene_data.guard.show()
-		control("tower",Vector3(25,0,-18.38),"BLACKCLIFF","In die Lichtkammer hinabsteigen")
 	else:
-		var mara:=figure(Vector3(-8.42,.04,11.65),false,PI)
-		plate("mara",mara.position+Vector3(0,1,-.31),"Mit Mara sprechen",Vector3(.72,1.7,.56))
+		var entries := {
+			"log": "Netzmacherbuch lesen",
+			"photo": "Familienfoto betrachten",
+			"family": "Maras Küchenband abspielen",
+			"bell": "Glockenspur anhören"
+		}
+		for id: String in entries:
+			plate(id,shore_art.point_at("ufer",id),entries[id],Vector3(.71,.50,.53))
+		var mara:=figure(shore_art.point_at("ufer","mara"),false,PI)
+		plate("mara",mara.position+Vector3(0,1,-.32),"Mit Mara sprechen",Vector3(.72,1.7,.59))
 		for i in 3:
 			scene_data["resident"+str(i)]=figure(Vector3(-26+i*16,.11,-4.2+i*2),false,PI/2)
-
-func home(at: Vector3, yaw: float, kind: int) -> void:
-	var house:=Node3D.new()
-	area.add_child(house)
-	house.position=at
-	house.rotation.y=yaw
-	var house_colors:=[Color("#4d7471"),Color("#a49678"),Color("#805448"),Color("#787960"),Color("#875d51"),Color("#4c6e71"),Color("#607277")]
-	var title:String=["FISCHER & SÖHNE","HAUS MILLER","HAUS WARD","KÜSTENPOST","CAFÉ MORGENROT","LESESAAL","UHRWERK WEST"][kind]
-	var color:Color=house_colors[kind]
-	box(Vector3(0,-.01,0),Vector3(9.6,.10,8.0),WOOD,true,house)
-	for s in [-1,1]:
-		box(Vector3(s*4.7,1.48,0),Vector3(.22,2.96,8),color,true,house)
-		box(Vector3(s*2.82,1.48,3.92),Vector3(3.78,2.96,.22),color,true,house)
-		if kind==2:
-			box(Vector3(s*2.82,1.48,-3.92),Vector3(3.78,2.96,.22),color,true,house)
-		box(Vector3(s*2.81,1.67,4.06),Vector3(1.38,1.12,.10),Color("#a7a487"),false,house)
-		box(Vector3(s*2.81,1.67,4.127),Vector3(1.19,.92,.045),Color("#394e50"),false,house,.12)
-		box(Vector3(s*2.81,1.67,4.16),Vector3(.046,1.02,.05),Color("#ac9d7c"),false,house)
-		box(Vector3(s*2.81,1.67,4.16),Vector3(1.25,.04,.05),Color("#ac9d7c"),false,house)
-		var roof_panel:=box(Vector3(s*2.35,3.81,0),Vector3(5.03,.16,8.68),Color("#354a50"),false,house)
-		roof_panel.rotation.z=-s*.34
-		for j in 12:
-			box(Vector3(s*2.81,.15+j*.232,4.03),Vector3(3.69,.032,.025),color.darkened(.22),false,house)
-		for j in 9:
-			var batten:=box(Vector3(s*2.34,3.92,-4.21+j*.98),Vector3(4.94,.07,.062),Color("#46585b"),false,house)
-			batten.rotation.z=-s*.34
-	box(Vector3(0,2.60,3.92),Vector3(1.95,.73,.22),color,true,house)
-	if kind==2:
-		box(Vector3(0,2.60,-3.92),Vector3(1.95,.73,.22),color,true,house)
-	else:
-		box(Vector3(0,1.48,-3.92),Vector3(9.45,2.96,.22),color,true,house)
-	for z in [-3.92,3.92]:
-		var gable:=PrismMesh.new()
-		gable.size=Vector3(9.49,1.63,.18)
-		shape(gable,Vector3(0,3.78,z),color.darkened(.15),0,house)
-	box(Vector3(0,2.95,0),Vector3(9.39,.13,7.85),WOOD,false,house)
-	box(Vector3(2.85,4.26,-1.65),Vector3(.52,1.43,.54),Color("#705a50"),false,house)
-	box(Vector3(2.85,5.0,-1.65),Vector3(.64,.12,.68),SLATE,false,house)
-	for x in [-2.30,2.44]:
-		var table_z:=-1.47 if (kind==2 and x>0) else .73
-		box(Vector3(x,.82,table_z),Vector3(1.56,.13,.94),WOOD,true,house)
-		for dx in [-.64,.64]:
-			for dz in [-.34,.34]:
-				box(Vector3(x+dx,.39,table_z+dz),Vector3(.095,.78,.095),WOOD,false,house)
-		box(Vector3(x+.56,.94,table_z-.21),Vector3(.22,.12,.25),SLATE,false,house)
-	for x in [-3.53,3.53]:
-		for j in 3:
-			box(Vector3(x,.34+j*.56,-2.98),Vector3(1.59,.069,.52),WOOD,false,house)
-			for t in 6:
-				box(Vector3(x-.65+t*.21,.52+j*.56,-2.96),Vector3(.14,.25+.04*cos(t),.24),house_colors[(j+t+kind)%house_colors.size()],false,house)
-	var anchor:=house.to_global(Vector3(0,2.57,4.09))-area.global_position
-	plaque(title,anchor,30,yaw)
-	lamp(house.to_global(Vector3(.06,2.55,-.42))-area.global_position,AMBER,.98,6.4)
-	if chapter==2 and kind in [0,1,2,5]:
-		var id:String=["log","photo","family","unused","unused","bell"][kind]
-		var local:=house.to_global(Vector3(-2.30,.99,.85))-area.global_position
-		box(local,Vector3(.43,.09,.35),AMBER,false,null,.3)
-		plate(id,local+Vector3(0,.12,0),["Netzmacherbuch lesen","Familienfoto betrachten","Maras Küchenband abspielen","","","Glockenspur anhören"][kind])
 
 func core() -> void:
 	set_atmosphere(false,true)
@@ -882,7 +842,7 @@ func _process(delta: float) -> void:
 			actor.pose("walk",.58)
 	if chapter==3 and scene_data.has("street_water") and task==3:
 		surge+=delta
-		if absf(body.position.x-7)<1.25 and body.position.z< -14.2 and body.position.z> -17.2:
+		if absf(body.position.x-7)<1.30 and body.position.z< -15.40 and body.position.z> -17.2:
 			escaped_ward=true
 		scene_data.street_water.position.y=minf(.51,-.09+surge*.014)
 		if surge>58 and body.position.z> -15 and not wet:

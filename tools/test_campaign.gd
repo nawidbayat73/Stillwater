@@ -54,7 +54,9 @@ func run() -> void:
 	assert_ok(late.chapter==1,"exit requires the current reality")
 	late.act("phase")
 	late.act("station_end")
-	assert_ok(late.chapter==2 and late.area.get_child_count()>100,"town with furnished houses")
+	var town: Node = late.area.get_node("Uferstrasse")
+	assert_ok(late.chapter==2 and town.find_child("Ward",true,false)!=null and town.find_child("Cafe",true,false)!=null,
+		"new waterfront and its furnished buildings loaded")
 	for id in ["log","photo","family","bell"]:
 		late.act(id)
 	for i in 6: late.act("mara")

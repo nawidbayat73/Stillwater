@@ -22,6 +22,9 @@ def assemble(base, target):
         path = directory.read(length).rstrip(b"\0").decode()
         offset, length, digest, flag = struct.unpack("<QQ16sI", directory.read(36))
         files[path] = (offset, length, digest, flag)
+    for resource_name in ("ufer.glb","sturm.glb","ufer.json","sturm.json"):
+        if not (Path(__file__).resolve().parent/"game"/"scenery"/resource_name).is_file():
+            raise FileNotFoundError(f"Build scenery first: missing {resource_name}")
     content = bytearray(pack[:table])
     def add(name, data):
         content.extend(bytes(-len(content) % 16))
@@ -31,8 +34,13 @@ def assemble(base, target):
     remap = pack[origin+offset:origin+offset+length].decode()
     old_scene = re.search(r'path="([^"]+)"', remap)[1]
     root = Path(__file__).resolve().parent
-    for file in (root/"game").iterdir():
-        add(file.name, file.read_bytes().replace(b"__BASE_SCENE__",old_scene.encode()))
+    game = root/"game"
+    for file in sorted(game.rglob("*")):
+        if file.is_file():
+            data = file.read_bytes()
+            if file.name == "main.tscn":
+                data = data.replace(b"__BASE_SCENE__",old_scene.encode())
+            add(file.relative_to(game).as_posix(),data)
     table = len(content)
     content.extend(struct.pack("<I", len(files)))
     for name,(offset,length,digest,flag) in sorted(files.items()):

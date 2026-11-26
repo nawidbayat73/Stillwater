@@ -8,9 +8,11 @@ Dieser Wiederaufbau verwendet den aus acht BIN-Dateien wiederhergestellten Windo
 
 Entpacke das Windows-ZIP. Starte `Stillwater-The-Last-Tide.exe` oder doppelklicke auf `Stillwater-Starten.bat`. Die neuen Kapitel verwenden WASD, Maus, E zum Interagieren, F für die Taschenlampe, Umschalt zum Sprinten und Esc für die Pause.
 
+[Windows-ZIP mit EXE und BAT herunterladen](https://raw.githubusercontent.com/nawidbayat73/Stillwater/downloads/Stillwater-Kapitel-I-VII-Windows.zip)
+
 ## Modelle und Wiederaufbau
 
-Die GLB-Dateien für Höhlen, Platform 6, Other Shore, die überflutete Stadt und die Resonanzkammer lassen sich in Blender importieren. Die Integration und die Erstellung der neuen Schauplätze liegen unter `game/`. Das Windows-ZIP und das Modell-ZIP liegen unter Releases.
+Die GLB-Dateien für Höhlen, Platform 6, Other Shore, die überflutete Stadt und die Resonanzkammer lassen sich in Blender importieren. Die Integration und die Erstellung der neuen Schauplätze liegen unter `game/`. [3D-Modellpaket herunterladen](https://raw.githubusercontent.com/nawidbayat73/Stillwater/downloads/Stillwater-3D-Modelle.zip)
 
 Zum Bauen wird die ursprüngliche x64-EXE aus Alpha 0.3.0 benötigt.
 

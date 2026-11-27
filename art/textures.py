@@ -82,9 +82,22 @@ CARDS = [
     ("breakfast", "FRISCH", "BACKSTUBE", "ZITRONE  ·  MANDEL", "paper"),
     ("pager", "KEIN DURCHGANG", "NORDKAI   /   04", "ÜBER DEN WARTUNGSSTEG", "red"),
     ("rack", "RÜCKLAUF", "SERVER  /  B–06", "BAND 11  ·  17.11.1998", "document"),
+    ("landfall", "NORDKAI", "STILLWATER   /   NORDATLANTIK", "LANDGANG  ·  ZUR KÜSTENSTRASSE", "glass"),
+    ("coast_guard", "KÜSTENSTRASSE", "STILLWATER", "STRASSENSPERRE   /   60 M", "paper"),
+    ("archive_plate", "BEOBACHTUNG 08", "PLATFORM 6   /   17.11.1998", "NUR EINE KOPIE PRO SCHICHT", "glass"),
+    ("rigel_plan", "RIGEL", "DECK B   /   LADEBUCH", "NORDATLANTIK   ·   NACHTSCHICHT", "chart"),
+    ("coresheet", "W—06", "SCHALTFOLGE  /  BLACKCLIFF", "DÄMPFEN   /   KOPPELN   /   NULL", "document"),
+    ("medicine", "KRANKENSTATION", "RIGEL   /   DECK B", "SANITÄTSMATERIAL   •   1998", "paper"),
+    ("fuel_oil", "DIESEL", "BLACKCLIFF   /   01", "KRAFTSTOFF  ·  KEIN OFFENES LICHT", "red"),
+    ("hydrophone", "LOTMESSUNG", "GEZEITENSTOLLEN   /   P–2", "SPUR I   •   16.11.1998", "document"),
+    ("maritime", "KANAL 16", "NORDATLANTIK   /   04:12", "WARD   ·   FREQUENZPROTOKOLL", "glass"),
+    ("closed", "GESCHLOSSEN", "HAFENAUFSICHT STILLWATER", "ANLEGEN NUR AM ROTEN LICHT", "paper"),
+    ("cabins", "KOJEN 01–04", "RIGEL   /   CREW", "FREIWACHE · WINDSTÄRKE 6", "glass"),
+    ("zero", "SUBJECT ZERO", "W–06   /   GEZEITENKERN", "FELDGRENZE   /   SCHALTSTELLE 3", "glass"),
 ]
 
 SIZE = 384
+CARD_ROWS = math.ceil(len(CARDS)/4)
 
 
 def tiled_noise(rng, n, height, width=None):
@@ -260,7 +273,7 @@ def print_cards(directory):
         "chart":((183,185,147),(58,79,71)),
         "document":((201,185,148),(83,78,55)),
     }
-    atlas=Image.new("RGB",(384*4,192*6),(54,65,62))
+    atlas=Image.new("RGB",(384*4,192*CARD_ROWS),(54,65,62))
     for index,(name,title,heading,foot,style) in enumerate(CARDS):
         bg,fg=styles.get(style,((200,183,149),(64,70,65)))
         card=Image.new("RGB",(384,192),bg)
@@ -289,7 +302,7 @@ def print_cards(directory):
         fade=np.asarray(Image.fromarray(np.uint8(rng.uniform(0,255,(8,14)))).resize((384,192),Image.Resampling.BICUBIC)).astype(float)
         worn=Image.fromarray(np.uint8(np.clip(array*(.91+fade[...,None]*.00058)+fine,0,255)))
         atlas.paste(worn,((index%4)*384,(index//4)*192))
-    atlas.save(directory/"lettering.png",optimize=True)
+    atlas.save(directory/"lettering.jpg",quality=92,subsampling=0,optimize=True)
 
 
 def make_rug(directory):

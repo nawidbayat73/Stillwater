@@ -21,12 +21,26 @@ var light: DirectionalLight3D
 var world_env: Environment
 var layer: CanvasLayer
 var hud: Label
+var heading: Label
+var hud_box: PanelContainer
+var prompt_box: PanelContainer
+var subtitle_box: PanelContainer
+var footage: Control
 var prompt: Label
 var subtitle: Label
 var panel: PanelContainer
 var crosshair: Label
 var audio: AudioStreamPlayer3D
 var phase_label: Label3D
+var phase_lamps: Array[OmniLight3D]=[]
+var phase_colors: Array[Color]=[]
+var film_target: Node3D
+var film_start:=Vector3.ZERO
+var film_time:=0.0
+var ending_camera: Camera3D
+var ending_id := ""
+var ending_elapsed := 0.0
+var ending_light: OmniLight3D
 var chapter := 0
 var task := 0
 var badges := {}
@@ -87,38 +101,82 @@ func make_hud() -> void:
 	layer=CanvasLayer.new()
 	layer.layer=22
 	add_child(layer)
-	hud=Label.new()
-	layer.add_child(hud)
-	hud.position=Vector2(34,24)
-	hud.add_theme_font_size_override("font_size",18)
-	hud.modulate=TEAL
-	prompt=Label.new()
-	layer.add_child(prompt)
-	prompt.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	prompt.offset_left=-280
-	prompt.offset_right=280
-	prompt.offset_top=37
+	var frame:=Control.new()
+	layer.add_child(frame)
+	frame.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	frame.theme=base.interface.root.theme
+	frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+	hud_box=PanelContainer.new()
+	frame.add_child(hud_box)
+	hud_box.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	hud_box.offset_left=34
+	hud_box.offset_top=29
+	hud_box.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	hud_box.add_theme_stylebox_override("panel",panel_style(Color(.054,.082,.097,.87),3))
+	var column:=VBoxContainer.new()
+	hud_box.add_child(column)
+	column.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	column.add_theme_constant_override("separation",3)
+	heading=make_label(column,load("res://assets/ui/PlexMono.ttf"),13,Color("#dbad7f"))
+	hud=make_label(column,load("res://assets/ui/Barlow.ttf"),17,Color("#e6e2d3"))
+
+	prompt_box=PanelContainer.new()
+	frame.add_child(prompt_box)
+	base.interface.anchor(prompt_box,Vector4(.40,.5,.60,.5),Vector4(0,32,0,62))
+	prompt_box.add_theme_stylebox_override("panel",panel_style(Color(.055,.087,.095,.86)))
+	prompt_box.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	prompt=make_label(prompt_box,load("res://assets/ui/Barlow.ttf"),17,Color("#ece4ce"))
 	prompt.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
-	prompt.modulate=AMBER
-	crosshair=Label.new()
-	layer.add_child(crosshair)
-	crosshair.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	crosshair.offset_top=-13
-	crosshair.offset_left=-4
+	prompt_box.hide()
+
+	crosshair=make_label(frame,load("res://assets/ui/PlexMono.ttf"),13,Color("#ddd9c5"))
+	base.interface.anchor(crosshair,Vector4(.5,.5,.5,.5),Vector4(-3,-8,3,7))
 	crosshair.text="·"
-	subtitle=Label.new()
-	layer.add_child(subtitle)
-	subtitle.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	subtitle.offset_left=100
-	subtitle.offset_right=-100
-	subtitle.offset_top=-102
-	subtitle.offset_bottom=-23
+
+	subtitle_box=PanelContainer.new()
+	frame.add_child(subtitle_box)
+	base.interface.anchor(subtitle_box,Vector4(.155,1,.845,1),Vector4(0,-111,0,-30))
+	subtitle_box.add_theme_stylebox_override("panel",panel_style(Color(.028,.046,.052,.91)))
+	subtitle_box.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	subtitle=make_label(subtitle_box,load("res://assets/ui/Barlow.ttf"),20,Color("#e7e1d4"))
 	subtitle.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	subtitle.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
 	subtitle.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-	for label in [hud,prompt,subtitle]:
-		label.add_theme_color_override("font_outline_color",Color("#111817"))
-		label.add_theme_constant_override("outline_size",9)
-	subtitle.add_theme_font_size_override("font_size",21)
+	subtitle_box.hide()
+
+	footage=Control.new()
+	frame.add_child(footage)
+	footage.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	footage.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	var top: ColorRect=base.interface.color_box(footage,Color("#101819"),Vector4(0,0,1,.095))
+	top.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	var lower: ColorRect=base.interface.color_box(footage,Color("#101819"),Vector4(0,.925,1,1))
+	lower.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	var code:=make_label(footage,load("res://assets/ui/PlexMono.ttf"),14,Color("#d7debd"))
+	base.interface.anchor(code,Vector4(.05,.045,.86,.088))
+	code.text="●   P6-08   /   17.11.1998   /   BEOBACHTUNG"
+	footage.hide()
+
+func make_label(parent: Control,font: Font,size: int,color: Color) -> Label:
+	var label:=Label.new()
+	parent.add_child(label)
+	label.add_theme_font_override("font",font)
+	label.add_theme_font_size_override("font_size",size)
+	label.add_theme_color_override("font_color",color)
+	label.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	return label
+
+func panel_style(color: Color,left_border := 0) -> StyleBoxFlat:
+	var style:=StyleBoxFlat.new()
+	style.bg_color=color
+	style.border_width_left=left_border
+	style.border_color=Color("#b38a65")
+	style.content_margin_left=13
+	style.content_margin_right=13
+	style.content_margin_top=6
+	style.content_margin_bottom=7
+	return style
 
 func surface(color: Color, emission := 0.0, rough := .75) -> StandardMaterial3D:
 	var paint:=StandardMaterial3D.new()
@@ -186,7 +244,7 @@ func plaque(caption: String, at: Vector3, point_size := 34, yaw := 0.0) -> Label
 	text.modulate=AMBER
 	return text
 
-func lamp(at: Vector3, tint: Color, energy := 1.4, reach := 7.5) -> void:
+func lamp(at: Vector3, tint: Color, energy := 1.4, reach := 7.5) -> OmniLight3D:
 	box(at+Vector3(0,.2,0),Vector3(.45,.10,.20),tint,false,null,.9)
 	var node:=OmniLight3D.new()
 	area.add_child(node)
@@ -194,6 +252,7 @@ func lamp(at: Vector3, tint: Color, energy := 1.4, reach := 7.5) -> void:
 	node.light_color=tint
 	node.light_energy=energy
 	node.omni_range=reach
+	return node
 
 func set_atmosphere(day := false, storm := false) -> void:
 	var env:=Environment.new()
@@ -237,21 +296,14 @@ func plate(id: String, pos: Vector3, caption: String, size := Vector3(.85,.62,.4
 	actions[id]=caption
 
 func control(id: String, pos: Vector3, title: String, hint: String) -> void:
-	box(pos+Vector3(0,.45,0),Vector3(.98,.9,.64),STEEL,true)
-	box(pos+Vector3(0,1.01,0),Vector3(1.06,.29,.74),SLATE)
-	box(pos+Vector3(0,1.02,.38),Vector3(.62,.13,.025),TEAL,false,null,.65)
-	for i in 3:
-		box(pos+Vector3(-.28+i*.28,.90,.38),Vector3(.08,.06,.025),AMBER,false,null,.55)
+	# The same cabinet casting is repainted for each site, with the original control hit area.
+	shore_art.add_colliders(area,[[pos.x,pos.y+.421,pos.z,.95,.842,.64,0]])
+	var face:=Node3D.new()
+	area.add_child(face)
+	face.position=pos
+	shore_art.attach("instruments",face,false)
 	plaque(title,pos+Vector3(0,1.37,.18),24)
-	plate(id,pos+Vector3(0,1.02,.48),hint)
-
-func door(at: Vector3, width: float, height: float, depth: float, paint: Color, turn := false) -> void:
-	# A walkable opening occupies the middle of the wall.
-	var size:=Vector3((width-1.8)*.5,height,depth)
-	for sign_value in [-1,1]:
-		var side:=float(sign_value)*(width+1.8)*.25
-		box(at+Vector3(0,height*.5,side) if turn else at+Vector3(side,height*.5,0),Vector3(depth,height,size.x) if turn else size,paint,true)
-	box(at+Vector3(0,(height+2.13)*.5,0),Vector3(depth,height-2.13,1.8) if turn else Vector3(1.8,height-2.13,depth),paint,true)
+	plate(id,pos+Vector3(0,1.02,.482),hint)
 
 func build(index: int) -> void:
 	if is_instance_valid(area):
@@ -266,6 +318,14 @@ func build(index: int) -> void:
 	light.directional_shadow_max_distance=42
 	actions.clear()
 	scene_data.clear()
+	phase_lamps.clear()
+	phase_colors.clear()
+	footage.hide()
+	hud_box.show()
+	prompt_box.hide()
+	subtitle_box.hide()
+	subtitle_left=0.0
+	crosshair.show()
 	past=false
 	wet=false
 	surge=-1.0
@@ -318,47 +378,17 @@ func figure(at: Vector3, drowned: bool, yaw: float) -> Node3D:
 
 func cave() -> void:
 	set_atmosphere()
-	box(Vector3(0,-.25,-17),Vector3(17,.50,59),Color("#343936"),true)
-	for side in [-1,1]:
-		box(Vector3(side*7.9,2.3,-17),Vector3(.6,5,60),SLATE,true)
-		for i in 22:
-			var z:=11-i*2.63
-			var height:=1.17+.51*sin(i*2.37)
-			var mesh:=SphereMesh.new()
-			mesh.radial_segments=9
-			mesh.rings=5
-			var rock:=shape(mesh,Vector3(side*(7.7+height*.19),height,z),Color("#3e4640").darkened(.08+.06*cos(i)))
-			rock.scale=Vector3(3.1,3.3+height,3.9)
-			rock.rotation.z=sin(i)*.21
-			if i%3==0:
-				box(Vector3(side*6.1,1.92,z),Vector3(.25,3.84,.32),WOOD)
-				pipe(Vector3(side*5.9,.75,z),Vector3(side*5.9,.75,z-7.89),.145,Color("#845741"))
-			if i%2==0:
-				rock=shape(mesh,Vector3(side*2.92,4.12+height*.28,z),Color("#393e38"))
-				rock.scale=Vector3(5.8,2.60,4.43)
-	box(Vector3(0,2.4,12),Vector3(17,4.8,.42),SLATE,true)
-	box(Vector3(0,2.4,-46),Vector3(17,4.8,.42),SLATE,true)
-	for z in [6,-2,-11,-20,-31,-41]:
-		box(Vector3(0,3.70,z),Vector3(12.35,.25,.36),WOOD)
-		lamp(Vector3(4.6,2.32,z),AMBER,1.8)
-	for i in 62:
-		box(Vector3(4.82,.085,-2.4-i*.66),Vector3(2.50,.17,.61),WOOD.lightened(.03*sin(i)))
-		if i%5==0:
-			box(Vector3(6.01,.65,-2.4-i*.66),Vector3(.13,1.3,.15),STEEL)
-			box(Vector3(6.01,1.27,-3.72-i*.66),Vector3(.095,.09,3.3),STEEL,false,null,.13)
-	box(Vector3(4.82,.076,-22.44),Vector3(2.50,.15,41.17),WOOD,true)
-	scene_data.water=water(Vector3(0,-.08,-28),Vector2(6.7,31),true)
-	scene_data.front=box(Vector3(0,1.13,3.87),Vector3(7.1,2.25,.23),STEEL,true)
-	for x in [-5.85,5.85]:
-		box(Vector3(x,2,3.87),Vector3(4.60,4,.35),SLATE,true)
+	world_env.ambient_light_color=Color("#9fb1a8")
+	world_env.ambient_light_energy=.40
+	world_env.fog_density=.027
+	world_env.fog_light_color=Color("#405655")
+	light.light_energy=.31
+	var kit:=shore_art.attach("chapter4",area,true)
+	scene_data.front=moveable(kit,"TideGate",Vector3(7.1,2.25,.23))
+	scene_data.shutter=moveable(kit,"PressureGate",Vector3(7.1,2.60,.27))
+	scene_data.water=water(Vector3(0,-.08,-33.9),Vector2(6.7,20.6),true)
 	control("ebb",Vector3(2.45,0,7.5),"ROTER PEGEL","Auf Ebbe warten")
-	plaque("GEZEITENTOR  /  P-2",Vector3(-2.47,2.55,4.15))
-	for i in 2:
-		var x:float=-4.63+i*2.02
-		pipe(Vector3(x,.65,-11.99),Vector3(x,.65,-13.55),.46,STEEL)
-		for j in 8:
-			pipe(Vector3(x,.65,-12-j*.18),Vector3(x,.65,-12.06-j*.18),.52,Color("#716756"))
-		ring(Vector3(x,1.25,-12),.23,.035,Color("#ab6750"))
+	plaque("GEZEITENTOR  /  P–2",Vector3(-2.47,2.96,4.15),27)
 	control("inlet",Vector3(-4.65,0,-10.78),"A / ZULAUF","Zulaufventil bedienen")
 	control("bypass",Vector3(-2.64,0,-10.78),"B / UMLAUF","Umlaufventil bedienen")
 	control("pump",Vector3(-.69,0,-10.78),"C / START","Pumpe P-2 starten")
@@ -366,58 +396,54 @@ func cave() -> void:
 	var first_part:=area.get_child_count()
 	control("receiver",Vector3(-.25,0,-18),"FUNKUMSETZER","Auf Maras Stimme antworten")
 	scene_data.receiver_group=area.get_children().slice(first_part)
-	scene_data.shutter=box(Vector3(0,3.91,-22.4),Vector3(7.1,2.61,.28),STEEL,true)
-	box(Vector3(-5.61,1.7,-22.4),Vector3(4,3.4,.32),SLATE,true)
 	scene_data.double=figure(Vector3(-2.52,.03,-20.2),true,0)
 	control("cave_end",Vector3(0,0,-43.7),"PLATFORM 6","Druckschleuse betreten")
-	if task>=1: scene_data.front.position.y=3.88
+	shore_art.play_loop(area,"coast",Vector3(2,0,-25),-22)
+	if task>=1:
+		scene_data.front.position.y=3.88
 	if task>=3:
 		scene_data.shutter.position.y=1.29
 		scene_data.water.position.y=.62
 		remove_receiver()
 
+func moveable(kit: Node3D, id: String, size: Vector3) -> Node3D:
+	var result:=kit.find_child(id,true,false) as Node3D
+	shore_art.add_colliders(result,[[0.0,0.0,0.0,size.x,size.y,size.z,0.0]])
+	return result
+
 func station() -> void:
 	set_atmosphere()
-	box(Vector3(0,-.21,-16),Vector3(19.2,.42,58),SLATE,true)
-	box(Vector3(0,3.36,-16),Vector3(19.2,.24,58),Color("#273336"),true)
-	for x in [-9.52,9.52]:
-		box(Vector3(x,1.65,-16),Vector3(.35,3.3,58),STEEL,true)
-		pipe(Vector3(x*.96,2.7,12),Vector3(x*.96,2.7,-44),.18,Color("#785946"))
-	for z in [12.4,-44.7]:
-		box(Vector3(0,1.65,z),Vector3(19.2,3.3,.35),STEEL,true)
+	var kit:=shore_art.attach("chapter5",area,false)
+	for part in kit.get_children():
+		if part is OmniLight3D:
+			phase_lamps.append(part)
+			phase_colors.append(part.light_color)
 	var sides:=[["SICHERHEIT","BIOLOGIE","GENERATOR","ARCHIV 08","BEOBACHTUNG"],["UNTERKUNFT","SIGNALFORSCHUNG","SERVER","WASSERKONTROLLE","LAGER"]]
 	for i in 5:
 		var z:=5.7-i*9.0
 		for side in [-1,1]:
-			door(Vector3(side*2.70,0,z),9.0,3.3,.25,STEEL,true)
-			box(Vector3(side*6.08,1.55,z-4.5),Vector3(6.83,3.1,.23),STEEL,true)
 			var caption:String=sides[0 if side==-1 else 1][i]
-			plaque(caption,Vector3(side*2.54,2.52,z),27,-side*PI/2)
-			lamp(Vector3(side*6.25,2.65,z),AMBER if i%2 else TEAL,2.2,7)
-			for j in 3:
-				var x:float=side*(5.03+j*1.39)
-				box(Vector3(x,.46,z-2.85),Vector3(1.13,.92,.72),STEEL,true)
-				box(Vector3(x,.99,z-3.11),Vector3(.69,.29,.21),TEAL,false,null,.52)
-				for k in 3:
-					box(Vector3(x-.31+k*.31,1.22,z-3.14),Vector3(.095,.25,.10),Color("#576e67").lightened(.1*k),false,null,.09*k)
-				if i==2 and side==1:
-					for k in 7:
-						box(Vector3(x,.36+k*.235,z+2.84),Vector3(1.07,.21,.59),Color("#203331"),k==0)
-						box(Vector3(x+.36,.36+k*.235,z+2.53),Vector3(.12,.038,.02),TEAL,false,null,1.3)
-		lamp(Vector3(0,2.9,z),TEAL,2.35,8.0)
-		box(Vector3(0,.01,z),Vector3(1.3,.015,.20),Color("#ad8051"))
-	scene_data.rubble=box(Vector3(0,1.25,-8.02),Vector3(5.39,2.50,.75),Color("#3e4843"),true)
-	var root:Node3D=scene_data.rubble
-	for j in 11:
-		var fragment:=box(Vector3(-2.38+j*.48,.09*cos(j),.46),Vector3(.76,1.49,.81),SLATE,false,root)
-		fragment.rotation.z=.4*sin(j)
+			plaque(caption,Vector3(side*2.531,2.52,z),24,-side*PI/2)
+	scene_data.rubble=moveable(kit,"CollapsedBulkhead",Vector3(5.39,2.50,.75))
 	control("coupler",Vector3(-5.57,0,5.77),"PHASENKOPPLER","Tragbaren Koppler aufnehmen")
 	control("phase",Vector3(1.40,0,-4.6),"ZEITPHASE","Zwischen 1998 und 2026 wechseln")
 	control("phase",Vector3(1.4,0,-28.65),"ZEITPHASE","Zwischen 1998 und 2026 wechseln")
-	phase_label=plaque("2026",Vector3(0,2.72,-7.51),39)
+	phase_label=plaque("2026",Vector3(0,2.74,-7.51),37)
 	control("archive",Vector3(-5.67,0,-21.64),"DAS BAND VON 1998","Archivaufnahme ansehen")
 	control("server_spool",Vector3(5.69,0,-12.64),"RÜCKLAUFKOPIE","Zweite Spur sichern")
 	control("station_end",Vector3(0,0,-42.8),"CONTAINMENT","Eindämmungsschleuse öffnen")
+	update_phase_visuals()
+
+func update_phase_visuals() -> void:
+	phase_label.text="17.11.1998" if past else "18.11.2026"
+	var rubble:Node3D=scene_data.rubble
+	rubble.position.y=5 if past else 1.25
+	world_env.ambient_light_color=Color("#b8b2a4") if past else Color("#84aeb0")
+	world_env.ambient_light_energy=.52 if past else .40
+	world_env.fog_light_color=Color("#6d6861") if past else Color("#789496")
+	light.light_energy=.26 if past else .16
+	for i in phase_lamps.size():
+		phase_lamps[i].light_color=phase_colors[i].lerp(Color("#edbb80"),.62) if past else phase_colors[i]
 
 func shore(storm: bool) -> void:
 	world_env=shore_art.atmosphere(storm)
@@ -486,21 +512,15 @@ func shore(storm: bool) -> void:
 
 func core() -> void:
 	set_atmosphere(false,true)
+	world_env.ambient_light_color=Color("#91acaa")
+	world_env.ambient_light_energy=.35
+	world_env.fog_density=.025
+	world_env.fog_light_color=Color("#455e62")
 	body.position=Vector3(0,.1,8.8)
-	var basalt:=Color("#263a3b")
-	box(Vector3(0,-.19,0),Vector3(21,.38,24),basalt,true)
-	for side in [-1,1]:
-		box(Vector3(side*10.46,4,0),Vector3(.41,8,24),basalt,true)
-		box(Vector3(0,4,side*11.77),Vector3(21,8,.44),basalt,true)
-	for i in 22:
-		var a:=TAU*i/22.0
-		var floor_point:=Vector3(sin(a)*9.7,.02,cos(a)*9.7)
-		var roof_point:=Vector3(sin(a)*4.3,6.2+sin(a*3)*1.12,cos(a)*4.3)
-		pipe(floor_point,roof_point,.22,STEEL)
-		pipe(roof_point,Vector3(0,7.4,0),.075,TEAL,.55)
-	scene_data.outer_ring=ring(Vector3(0,2.65,-1.82),2.06,.10,TEAL,1.9)
-	scene_data.inner_ring=ring(Vector3(0,2.65,-1.82),1.62,.07,AMBER,1.4)
-	lamp(Vector3(0,2.95,-1.81),TEAL,3.1,11)
+	var kit:=shore_art.attach("chapter7",area,true)
+	scene_data.outer_ring=kit.find_child("FieldOuter",true,false)
+	scene_data.inner_ring=kit.find_child("FieldInner",true,false)
+	ending_light=lamp(Vector3(0,2.95,-1.81),TEAL,2.27,10)
 	figure(Vector3(2.48,.04,4.78),true,-.43)
 	control("last",Vector3(-4.34,0,1.19),"DÄMPFUNG","Die Grenze schließen")
 	control("rising",Vector3(4.34,0,1.19),"KOPPLUNG","Mara herüberholen")
@@ -523,7 +543,8 @@ func hud_refresh() -> void:
 			goal="Fischerhaus, Haus Miller und Haus Ward durchsuchen. Funde: %d/3."%[shore_count()] if shore_count()<3 else "Mara im Café Morgenrot treffen. Mit E das Gespräch fortsetzen."
 		3:
 			goal=["Relais 1 vor der Küstenpost schließen.","Relais 2 vor Haus Ward schließen.","Relais 3 vor dem Uhrwerk schließen.","Durch den Hinterausgang von Haus Ward. Am Kai rechts zum Turm.","Im Kern die Grenze schließen, öffnen oder mit dem Nullsignal stabilisieren."][clampi(task,0,4)]
-	hud.text=TITLES[chapter]+"\n"+goal
+	heading.text=TITLES[chapter].to_upper()
+	hud.text=goal
 
 func shore_count() -> int:
 	return int(finds.has("log"))+int(finds.has("photo"))+int(finds.has("family"))
@@ -531,6 +552,7 @@ func shore_count() -> int:
 func say_line(what: String, duration := 5.0) -> void:
 	subtitle.text=what
 	subtitle_left=duration
+	subtitle_box.visible=bool(base.preferences.settings.subtitles)
 
 func play_sound(id: String, at: Vector3, volume := -6.0) -> void:
 	var path:="res://assets/audio/"+id+".wav"
@@ -596,11 +618,7 @@ func act(id: String) -> void:
 		"phase":
 			if task>=1:
 				past=not past
-				phase_label.text="17.11.1998" if past else "18.11.2026"
-				var rubble:Node3D=scene_data.rubble
-				rubble.position.y=5 if past else 1.25
-				light.light_color=AMBER if past else TEAL
-				world_env.ambient_light_color=AMBER if past else TEAL
+				update_phase_visuals()
 				play_sound("rv_shift",body.global_position)
 				say_line("Nachtschicht · 17. November 1998" if past else "Evakuiert · 18. November 2026")
 			else: say_line("Der tragbare Phasenkoppler liegt in der Sicherheitszentrale.")
@@ -692,13 +710,21 @@ func talk() -> void:
 		story_index+=1
 
 func archive_scene() -> void:
-	var actor:=figure(Vector3(-7.59,0,-23.73),false,.21)
+	var actor:=figure(Vector3(-5.73,0,-24.01),false,-.38)
 	actor.pose("listen",.72)
 	film=Camera3D.new()
 	area.add_child(film)
-	film.position=Vector3(-6.49,1.49,-20.97)
+	film.position=Vector3(-6.19,1.63,-22.55)
+	film.fov=65
+	film_start=film.position
+	film_target=actor
+	film_time=0.0
 	film.environment=world_env
-	film.look_at(actor.global_position+Vector3(0,1.21,0))
+	film.look_at(actor.global_position+Vector3(0,1.23,0))
+	hud_box.hide()
+	prompt_box.hide()
+	crosshair.hide()
+	footage.show()
 	film.make_current()
 	played=true
 	say_line("P6-08  /  17.11.1998\nDer erwachsene Mann trägt Elias’ Jacke. Er klopft zweimal und blickt in die Kamera.",8.5)
@@ -708,6 +734,9 @@ func archive_scene() -> void:
 	film.queue_free()
 	film=null
 	actor.queue_free()
+	footage.hide()
+	hud_box.show()
+	crosshair.show()
 	camera.make_current()
 	task=2
 	hud_refresh()
@@ -733,11 +762,14 @@ func overlay(heading: String, contents: String, buttons: Array) -> void:
 	column.add_theme_constant_override("separation",12)
 	panel.add_child(column)
 	var title:=Label.new()
+	title.add_theme_font_override("font",load("res://assets/ui/InstrumentSerif.ttf"))
 	title.text=heading
 	title.modulate=AMBER
-	title.add_theme_font_size_override("font_size",32)
+	title.add_theme_font_size_override("font_size",45)
 	column.add_child(title)
 	var text:=Label.new()
+	text.add_theme_font_override("font",load("res://assets/ui/Barlow.ttf"))
+	text.add_theme_font_size_override("font_size",21)
 	text.text=contents
 	text.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(text)
@@ -751,6 +783,19 @@ func overlay(heading: String, contents: String, buttons: Array) -> void:
 func dismiss() -> void:
 	if is_instance_valid(panel): panel.queue_free()
 	panel=null
+	if is_instance_valid(ending_camera):
+		ending_camera.queue_free()
+		ending_camera=null
+		ending_id=""
+		finish_title=""
+		camera.make_current()
+		ending_light.light_color=TEAL
+		ending_light.light_energy=2.27
+		scene_data.outer_ring.show()
+		scene_data.inner_ring.show()
+		scene_data.inner_ring.scale=Vector3.ONE
+		hud_box.show()
+		crosshair.show()
 	Input.mouse_mode=Input.MOUSE_MODE_CAPTURED
 
 func confirm(id: String) -> void:
@@ -766,7 +811,57 @@ func epilogue(id: String) -> void:
 	finish_title=ending[0]
 	finds["ending_"+id]=true
 	save()
-	overlay(ending[0],ending[1],[["Andere Entscheidung",func() -> void: finish_title=""; dismiss()],["Hauptmenü",func() -> void: returned.emit()]])
+	ending_camera=Camera3D.new()
+	ending_camera.environment=world_env
+	ending_camera.fov=63
+	area.add_child(ending_camera)
+	ending_camera.make_current()
+	ending_id=id
+	ending_elapsed=0.0
+	prompt_box.hide()
+	hud_box.hide()
+	crosshair.hide()
+	subtitle_box.hide()
+	play_sound("rv_unlock" if id=="last" else "rv_shift",area.to_global(Vector3(0,2,-2)),-9)
+	update_ending(0.0)
+	overlay(ending[0],ending[1],[["Andere Entscheidung",dismiss],["Hauptmenü",func() -> void: returned.emit()]])
+	panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	panel.offset_left=28
+	panel.offset_right=535
+	panel.offset_top=-232
+	panel.offset_bottom=-22
+
+func update_ending(delta: float) -> void:
+	ending_elapsed+=delta
+	var fade:=smoothstep(0.0,3.7,ending_elapsed)
+	var start:=Vector3(-5.83,2.45,6.05)
+	var finish:=Vector3(-5.09,2.25,4.53)
+	var focus:=Vector3(.63,2.40,-2.46)
+	var outer: Node3D=scene_data.outer_ring
+	var inner: Node3D=scene_data.inner_ring
+	match ending_id:
+		"last":
+			ending_light.light_color=TEAL.lerp(Color("#9b8d79"),fade)
+			ending_light.light_energy=lerpf(2.27,.22,fade)
+			inner.scale=Vector3.ONE*lerpf(1.0,.13,fade)
+			outer.visible=fade<.95
+			inner.visible=fade<.88
+		"rising":
+			start=Vector3(-6.03,2.05,5.42)
+			finish=Vector3(-5.20,1.95,4.22)
+			ending_light.light_color=TEAL.lerp(Color("#ff915c"),fade)
+			ending_light.light_energy=lerpf(2.27,5.1,fade)
+			inner.scale=Vector3.ONE*lerpf(1.0,1.17,fade)
+			outer.rotation.z=clock*.24+ending_elapsed*.33
+		"first":
+			start=Vector3(-5.34,2.38,4.84)
+			finish=Vector3(-5.99,2.40,3.95)
+			ending_light.light_color=TEAL.lerp(Color("#c9f3df"),fade)
+			ending_light.light_energy=lerpf(2.27,3.43,fade)
+			outer.rotation.z=lerpf(clock*.24,.0,fade)
+	inner.rotation.y=clock*.52+ending_elapsed*.19*(1.0-fade)
+	ending_camera.position=start if base.preferences.settings.reduced else start.lerp(finish,fade)
+	ending_camera.look_at(area.to_global(focus))
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode==KEY_ESCAPE:
@@ -781,9 +876,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.mouse_mode==Input.MOUSE_MODE_CAPTURED:
 		body.rotate_y(-event.relative.x*.0026)
 		camera.rotation.x=clampf(camera.rotation.x-event.relative.y*.0026,-1.46,1.46)
-	elif event is InputEventKey and event.pressed and not event.echo:
-		if event.physical_keycode==KEY_E: act(aim)
-		if event.physical_keycode==KEY_F: torch.visible=not torch.visible
+	elif event.is_action_pressed("interact"):
+		act(aim)
+	elif event.is_action_pressed("torch"):
+		torch.visible=not torch.visible
 
 func restart() -> void:
 	dismiss()
@@ -793,9 +889,8 @@ func restart() -> void:
 
 func _physics_process(delta: float) -> void:
 	if body==null or is_instance_valid(panel) or is_instance_valid(film): return
-	var direction:=Vector2(float(Input.is_physical_key_pressed(KEY_D))-float(Input.is_physical_key_pressed(KEY_A)),
-		float(Input.is_physical_key_pressed(KEY_S))-float(Input.is_physical_key_pressed(KEY_W))).limit_length()
-	var speed:=4.4 if Input.is_physical_key_pressed(KEY_SHIFT) else 2.64
+	var direction:=Input.get_vector("left","right","forward","back")
+	var speed:=4.4 if Input.is_action_pressed("sprint") else 2.64
 	var move:=body.basis*Vector3(direction.x,0,direction.y)*speed
 	body.velocity.x=move.x
 	body.velocity.z=move.z
@@ -810,13 +905,24 @@ func _physics_process(delta: float) -> void:
 	var target:=get_world_3d().direct_space_state.intersect_ray(ray)
 	aim=""
 	if not target.is_empty() and target.collider.has_meta("action"): aim=target.collider.get_meta("action")
-	prompt.text=("E  ·  "+actions[aim]) if actions.has(aim) else ""
+	prompt_box.visible=actions.has(aim)
+	prompt.text=("%s   ·   "%base.preferences.key_labels.interact+actions[aim]) if actions.has(aim) else ""
 
 func _process(delta: float) -> void:
+	if is_instance_valid(ending_camera):
+		update_ending(delta)
+		return
 	if area==null or is_instance_valid(panel): return
 	clock+=delta
 	subtitle_left-=delta
-	subtitle.visible=subtitle_left>0
+	subtitle_box.visible=subtitle_left>0 and bool(base.preferences.settings.subtitles)
+	if is_instance_valid(film) and is_instance_valid(film_target):
+		film_time+=delta
+		if not base.preferences.settings.reduced:
+			film.position=film_start.lerp(Vector3(-6.22,1.59,-22.76),smoothstep(.2,7.9,film_time))
+			film.look_at(film_target.global_position+Vector3(0,1.28,0))
+		if film_time>3.4:
+			film_target.pose("turn",.69)
 	if chapter==0 and surge>=0 and task==2:
 		var previous:=surge
 		surge+=delta

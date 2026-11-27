@@ -30,7 +30,7 @@ func run() -> void:
 	game.open_late()
 	late=game.current
 	await frames(8)
-	assert_ok(late.chapter==0 and late.area.get_child_count()>150,"caves built")
+	assert_ok(late.chapter==0 and is_instance_valid(late.scene_data.shutter),"caves built")
 	assert_ok(late.body.is_on_floor(),"player stands on cave floor")
 	late.act("ebb")
 	late.act("cave_spool")

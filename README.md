@@ -4,11 +4,11 @@
 
 Kapitel I–VII für Windows x64. Im Hauptmenü führt **Kapitel IV–VII · Nach der RIGEL** zum späteren Abschnitt. Nach Abschluss von Kapitel III erscheint dort ein direkter Einstieg in Kapitel IV.
 
-## Die Uferstraße
+## Überarbeitete Schauplätze
 
-Der Straßenabschnitt von **The Other Shore** und seine überflutete Fassung in **The Last Tide** verwenden neue 3D-Modelle. Die Netzmacherei, Haus Miller, Haus Ward, die Küstenpost, das Café, der Lesesaal, die Bootswerkstatt und das Uhrwerk haben eigene Innenräume und Einrichtungen. Gehwege, Gärten und Kai verbinden die Gebäude. In Kapitel VII weisen Notleuchten durch den Hinterausgang von Haus Ward zum Turm.
+Im neuen Einstieg hört Elias Maras Nachricht an Bord. Das rote Hafenlicht markiert den Anleger, bevor es über den Nordkai zur Straßensperre geht. Blackcliff, die RIGEL, der Gezeitenstollen und Platform 6 haben neue Ausstattungen, lesbare Schilder und szenenspezifisches Licht. Die überarbeitete Uferstraße verbindet die eingerichteten Häuser, Läden und Werkstätten. In der Resonanzkammer verändert sich das Licht und die Anlage reagiert auf jede Entscheidung.
 
-[Windows-ZIP mit EXE und Start-BAT](https://raw.githubusercontent.com/nawidbayat73/Stillwater/downloads-uferstrasse/Stillwater-Uferstrasse-Windows.zip) · [Blender-Szene und GLBs](https://raw.githubusercontent.com/nawidbayat73/Stillwater/downloads-uferstrasse/Stillwater-Uferstrasse-3D.zip)
+[Windows-ZIP mit EXE und BATs](https://media.githubusercontent.com/media/nawidbayat73/Stillwater/downloads-inszenierung/Stillwater-Inszenierung-Windows.zip) · [Download-BAT](https://raw.githubusercontent.com/nawidbayat73/Stillwater/downloads-inszenierung/Stillwater-Download.bat) · [Blender-Szenen und GLBs](https://raw.githubusercontent.com/nawidbayat73/Stillwater/downloads-inszenierung/Stillwater-Inszenierung-3D.zip)
 
 ## Start
 
@@ -16,7 +16,7 @@ Entpacke das Windows-ZIP. Starte `Stillwater-The-Last-Tide.exe` oder `Stillwater
 
 ## Projekt bauen
 
-`pack.py` erweitert die ursprüngliche Windows-x64-EXE aus Alpha 0.3.0 um den Wiederaufbau der späteren Kapitel. Die Uferstraße steckt als GLB in `game/scenery/`. Die gepackte Blender-Szene liegt im 3D-ZIP. Der Straßenabschnitt und die Sturm-Ergänzungen stehen dort als getrennte Kollektionen.
+`pack.py` erweitert die ursprüngliche Windows-x64-EXE aus Alpha 0.3.0 um den Wiederaufbau der späteren Kapitel. `game/scenery/` enthält die neuen 3D-Sets als GLB und die zugehörigen Layouts für Kollisionen, Licht und Interaktionspunkte. Das 3D-ZIP enthält die Sets in zwei Blender-Dateien mit gepackten Texturen.
 
 ```sh
 python3 pack.py PFAD/ZUR/BASIS.exe build/Stillwater-The-Last-Tide.exe
@@ -27,14 +27,16 @@ Für Änderungen an der Geometrie lassen sich die Modelle mit Blender 4.3.2 neu 
 ```sh
 python3 art/textures.py /tmp/stillwater-art/textures
 blender -b --python-exit-code 1 --python art/build_scenery.py -- game/scenery build/Stillwater-Uferstrasse.blend
+blender -b --python-exit-code 1 --python art/build_campaign.py -- game/scenery build/Stillwater-Szenen.blend
 python3 pack.py PFAD/ZUR/BASIS.exe build/Stillwater-The-Last-Tide.exe
 ```
 
 ## Prüfung
 
-Die Laufwegprüfung steuert die Figur mit echten Eingaben durch die Uferstraße, um die Hinweispunkte, den Weg bei Flut und die Kollision am Anleger zu testen. Die Kampagnenprüfung testet die Übergänge und die drei Enden. Beide Befehle verwenden eigene Spielstände.
+Die Laufwegprüfungen steuern die Figur vom Boot bis zu Nora und bei Flut durch die Uferstraße. Die Kampagnenprüfung testet die späteren Übergänge und die drei Enden. Alle Befehle verwenden eigene Spielstände.
 
 ```sh
+XDG_DATA_HOME="$(mktemp -d)" godot --headless --fixed-fps 60 --main-pack build/Stillwater-The-Last-Tide.exe --script tools/test_arrival.gd
 XDG_DATA_HOME="$(mktemp -d)" godot --headless --fixed-fps 60 --main-pack build/Stillwater-The-Last-Tide.exe --script tools/test_shore.gd
 XDG_DATA_HOME="$(mktemp -d)" godot --headless --fixed-fps 60 --main-pack build/Stillwater-The-Last-Tide.exe --script tools/test_campaign.gd
 ```

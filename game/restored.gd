@@ -1,7 +1,9 @@
 extends Node
 
+const Direction = preload("res://arrival_direction.gd")
 const LATE = preload("res://after_rigel.gd")
 var original
+var direction: Node
 var current
 var menu_stamp: String
 var offer: Button
@@ -9,6 +11,9 @@ var last_overlay: Control
 
 func _ready() -> void:
 	original = $Original
+	direction=Direction.new()
+	add_child(direction)
+	direction.mount(original)
 
 func _process(_delta: float) -> void:
 	if is_instance_valid(current):

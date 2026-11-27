@@ -9,7 +9,7 @@ from pathlib import Path
 import bpy
 from mathutils import Vector
 
-from textures import CARDS, SURFACES
+from textures import CARD_ROWS, CARDS, SURFACES
 
 PI=math.pi
 TAU=math.tau
@@ -59,7 +59,7 @@ def mat(name):
     material.use_nodes=True
     tree=material.node_tree
     bsdf=tree.nodes.get("Principled BSDF")
-    texture = TEXTURES / ("lettering.png" if name=="print" else f"{name}.jpg")
+    texture = TEXTURES / ("lettering.jpg" if name=="print" else f"{name}.jpg")
     emissive=0
     if name in SURFACES:
         hex_value,_,rough,_=SURFACES[name]
@@ -306,8 +306,8 @@ class Mesh:
         index=ATLAS[card]
         left=(index%4+.016)/4
         right=(index%4+.984)/4
-        top=1-(index//4+.016)/6
-        bottom=1-(index//4+.984)/6
+        top=1-(index//4+.016)/CARD_ROWS
+        bottom=1-(index//4+.984)/CARD_ROWS
         return [(left,bottom),(right,bottom),(right,top),(left,top)]
 
     def create(self):

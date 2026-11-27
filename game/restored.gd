@@ -2,7 +2,9 @@ extends Node
 
 const Direction = preload("res://arrival_direction.gd")
 const LATE = preload("res://after_rigel.gd")
+const Coast = preload("res://coastal_models.gd")
 var original
+var coast:=Coast.new()
 var direction: Node
 var current
 var menu_stamp: String
@@ -11,6 +13,9 @@ var last_overlay: Control
 
 func _ready() -> void:
 	original = $Original
+	coast.install(original.world)
+	for actor in [original.mira,original.jonas,original.tess,original.drowned]:
+		coast.dress_figure(actor)
 	direction=Direction.new()
 	add_child(direction)
 	direction.mount(original)
@@ -43,6 +48,7 @@ func _process(_delta: float) -> void:
 func open_late() -> void:
 	current = LATE.new()
 	current.base = original
+	current.coast = coast
 	current.position.x = 420.0
 	original.process_mode = Node.PROCESS_MODE_DISABLED
 	original.world.hide()

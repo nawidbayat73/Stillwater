@@ -30,9 +30,9 @@ func mount(host: Node) -> void:
 	game=host
 	add_child(deck)
 	deck.name="LandfallCameras"
-	harbor_env=atmosphere(Color("#738c94"),Color("#536f79"),.52,.015)
-	hill_env=atmosphere(Color("#a9bdbd"),Color("#67828a"),.47,.012)
-	ship_env=atmosphere(Color("#748e99"),Color("#607d86"),.51,.011)
+	harbor_env=atmosphere(Color("#9daeb8"),Color("#607d89"),.56,.011)
+	hill_env=atmosphere(Color("#aabbbd"),Color("#728791"),.49,.009)
+	ship_env=atmosphere(Color("#8a9da7"),Color("#596f76"),.53,.010)
 	installed["launch"]=art.attach("launch",game.arrival.launch,false)
 	installed["landfall"]=art.attach("landfall",game.world,false)
 	installed["chapter1"]=art.attach("chapter1",game.world,false)
@@ -73,7 +73,7 @@ func atmosphere(ambient: Color,fog: Color,energy: float,density: float) -> Envir
 	env.adjustment_enabled=true
 	env.adjustment_brightness=1.05
 	env.adjustment_saturation=.88
-	env.adjustment_contrast=1.07
+	env.adjustment_contrast=1.055
 	return env
 
 func add_point(parent: Node3D, at: Vector3, tint: Color, energy: float, radius: float) -> OmniLight3D:

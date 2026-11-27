@@ -86,7 +86,7 @@ def casing(mesh,loc,u,w,top,yaw,wide=False):
     mesh.box(loc(u,.041,.085),(w+.14,.068,.43),"fieldstone",False,yaw)
     if not wide:
         # Park the leaf alongside the open doorway.
-        mesh.box(loc(u-w*.5+.043,top*.47,-.451),(.081,top-.15,.74),"walnut",False,yaw)
+        mesh.box(loc(u-w*.5+.043,top*.47,-.451),(.081,top-.15,.74),"walnut",True,yaw)
         for offset in (.19,.45,.73):
             mesh.box(loc(u-w*.5+.091,top*offset,-.451),(.029,.038,.66),"oak",False,yaw)
         for face in (-1,1):
@@ -278,6 +278,7 @@ def stool(m,x,z,y=.46,finish="teal_leather"):
         m.beam((x+.13*math.cos(ang),y-.05,z+.13*math.sin(ang)),
                (x+.21*math.cos(ang),.02,z+.21*math.sin(ang)),.047,.054,"oak")
     m.hoop((x,y*.48,z),.16,.018,"deep_steel","y")
+    m.collision((x,y*.51,z),(.37,y*1.02,.37))
 
 
 def stacks(m,x,z,w=.20,y=.02,count=4,key="paper"):
@@ -348,6 +349,8 @@ def plant(m,x,z,y=0,size=1.0,rng=None,flower=True):
                         (.26*size,.168*size)],"ceramic_red",14,caps=False)
     m.revolve((x,y+size*.265,z),[(0,.170*size),(.007,.171*size)],"moss",12)
     leaves(m,x,y+size*.27,z,size*.79,rnd,flower)
+    if y<.08:
+        m.collision((x,y+.153*size,z),(.35*size,.306*size,.35*size))
 
 
 def leaves(m,x,y,z,scale,rnd,flowers):
@@ -457,7 +460,7 @@ def crate(m,x,y,z,w=.63,d=.43,h=.36,key="fir",solid=False):
         m.collision((x,y+h/2,z),(w,h,d))
 
 
-def barrel(m,x,y,z,r=.26,h=.68,material="fir"):
+def barrel(m,x,y,z,r=.26,h=.68,material="fir",solid=True):
     m.revolve((x,y,z),[(0,r*.87),(.07*h,r*.92),(.30*h,r),(.72*h,r*.99),(.98*h,r*.89),(h,r*.86)],material,22)
     for ratio in (.13,.31,.73,.91):
         rr=r*(.935 if ratio in (.13,.91) else 1.02)
@@ -467,6 +470,8 @@ def barrel(m,x,y,z,r=.26,h=.68,material="fir"):
         def p(length,dist):
             return x+dist*math.sin(a),y+h*length,z+dist*math.cos(a)
         m.rope([p(.045,r*.907),p(.31,r*1.001),p(.70,r*.995),p(.98,r*.891)],.0035,"walnut",5)
+    if solid and y<.12 and h>.25:
+        m.collision((x,y+h*.51,z),(r*1.79,h,r*1.79))
 
 
 def coil(m,x,y,z,major=.27,thickness=.021,turns=5,key="rope"):
@@ -577,12 +582,12 @@ def stovepipe(m,x,z):
 
 def bed(m,x,z,style="blanket"):
     m.soft((x,.287,z),(1.47,.29,2.16),"walnut",.077,solid=True)
-    m.soft((x,.515,z),(1.44,.25,2.09),"linen",.085)
+    m.soft((x,.515,z),(1.44,.25,2.09),"linen",.085,solid=True)
     m.soft((x,.662,z+.27),(1.45,.108,1.59),style,.044)
     m.soft((x,.71,z-.446),(1.42,.092,.23),"rouge_cloth",.038)
     m.blob((x-.293,.689,z-.775),(.274,.117,.266),"linen",segments=14,rings=8,jitter=.065)
     m.blob((x+.28,.69,z-.752),(.254,.096,.256),"canvas",segments=14,rings=8,jitter=.045)
-    m.box((x,.78,z-1.035),(1.58,1.02,.112),"walnut")
+    m.box((x,.78,z-1.035),(1.58,1.02,.112),"walnut",True)
     for i in range(8):
         m.box((x-.689+i*.197,.882,z-.967),(.067,.74,.048),"oak")
     for dx in (-.73,.73):
@@ -599,7 +604,7 @@ def sofa(m,x,z,length=1.9,front=PI):
         for dz in (-.26,.26):
             m.box(v(dx,.15,dz),(.10,.23,.09),"walnut",False,front)
     m.soft(v(0,.36,0),(length,.28,.77),"teal_leather",.118,front,True)
-    m.soft(v(0,.68,-.317),(length,.61,.193),"teal_leather",.08,front)
+    m.soft(v(0,.68,-.317),(length,.61,.193),"teal_leather",.08,front,True)
     for dx in (-length/2+.083,length/2-.083):
         m.soft(v(dx,.615,.00),(.147,.36,.78),"teal_leather",.068,front)
         m.soft(v(dx*.53,.517,.033),(length*.40,.148,.577),"green_cloth",.063,front)
@@ -1049,7 +1054,7 @@ def housing(region):
         if key=="ward":
             paving(m,0,-d/2-.53,1.98,1.16,.27)
         for px in (-w*.42,w*.42):
-            plant(m,px,d/2+.63,size=.89 if key!="fisher" else .69,flower=key not in ("repair","clock","fisher"))
+            plant(m,px,d/2+1.14,size=.89 if key!="fisher" else .69,flower=key not in ("repair","clock","fisher"))
         if key=="clock":
             clock_tower(m,h,r,d,color)
         if key=="miller":
@@ -1233,6 +1238,7 @@ def streetlight(m,x,z,yaw):
     m.revolve((lx,3.302,lz),[(0,.123),(.121,.158),(.17,.141),(.23,.069),(.265,.035)],"zinc",15)
     m.revolve((lx,3.247,lz),[(0,.066),(.087,.134),(.152,.134)],"glass_amber",15)
     m.light((lx,3.202,lz),"#ffd298",1.48,8.7,False)
+    m.collision((x,1.55,z),(.21,3.1,.21))
 
 
 def drain(m,x,z,wide=.50,depth=.36):
@@ -1259,7 +1265,9 @@ def pier(m,x,z,width,length):
             m.box((xx,-.67,zz),(.23,1.75,.24),"driftwood")
             m.box((xx,.118,zz),(.27,.066,.274),"zinc")
     for dx in (-width*.31,width*.31):
-        m.revolve((x+dx,.067,z-length+.62),[(0,.118),(.095,.10),(.32,.092),(.393,.14),(.414,.12)],"wet_iron",13)
+        at=(x+dx,.067,z-length+.62)
+        m.revolve(at,[(0,.118),(.095,.10),(.32,.092),(.393,.14),(.414,.12)],"wet_iron",13)
+        m.collision((at[0],.25,at[2]),(.21,.42,.21))
 
 
 def shoreline(m):
@@ -1282,6 +1290,7 @@ def shoreline(m):
             crate(m,x+.84,.073,-24.39-j*.61,.61,.43,.28,"driftwood",True)
     for x in range(-35,38,4):
         m.revolve((x,.03,-22.54),[(0,.112),(.07,.105),(.377,.069),(.420,.121),(.451,.086)],"wet_iron",13)
+        m.collision((x,.256,-22.54),(.213,.453,.213))
     x,z=-16.8,-21.96
     m.box((x,.184,z),(.78,.35,.91),"fieldstone",True)
     m.tube((x-.411,.532,z),(x+.411,.532,z),.116,"deep_steel",14)
@@ -1302,8 +1311,8 @@ def public_realm(region):
     m.box((0,-.23,0),(81,.46,48),"sand",True)
     m.box((0,.009,0),(81,.018,8.4),"asphalt")
     for s in (-1,1):
-        m.collision((s*40.0,1.52,0),(.65,3.05,48.1))
-    m.collision((0,1.62,23.82),(81,3.25,.38))
+        railing(m,s*40,-23.6,47.4,2,"olive_siding")
+    railing(m,-40,23.8,80,1,"olive_siding")
     for s in (-1,1):
         m.box((0,.023,s*5.32),(80.22,.046,2.36),"cobble")
         for i in range(117):
@@ -1317,8 +1326,8 @@ def public_realm(region):
             bench(m,x,s*5.75,1.73,"oak" if s<0 else "driftwood")
         for x in (-34.15,-18.52,-1.22,15.72,33.55):
             m.box((x,-.003,s*12.98),(3.6,.031,12.28),"moss")
-            railing(m,x-1.56,s*7.21,2.85,1,"sea_green" if s<0 else "ivory",False)
-            railing(m,x-1.65,(-15.55 if s<0 else 7.20),8.16,2,"olive_siding",False)
+            railing(m,x-1.56,s*7.21,2.85,1,"sea_green" if s<0 else "ivory")
+            railing(m,x-1.65,(-15.55 if s<0 else 7.20),8.16,2,"olive_siding")
     for j in range(33):
         x=-39.17+j*2.40
         for k in range(7):
@@ -1360,7 +1369,8 @@ def public_realm(region):
 
 def tree(m,x,z,height,rnd):
     side=rnd.uniform(-.32,.32)
-    m.tube((x,-.21,z),(x+side,height,z+.14),.184,"driftwood",9,.12)
+    m.tube((x,-.21,z),(x+side,height,z+.14),.184,"bark",11,.12)
+    m.collision((x,1.31,z),(.32,2.62,.32))
     for i in range(9):
         t=.24+i*.079
         y=height*t

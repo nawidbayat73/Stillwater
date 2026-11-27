@@ -13,9 +13,9 @@ if (Test-Path -LiteralPath (Join-Path $root $exe)) {
     Write-Host "Das Spiel ist in diesem Ordner. Starte $exe oder Stillwater-Starten.bat."
     return
 }
-$name='Stillwater-Inszenierung-Windows.zip'
-$source='https://media.githubusercontent.com/media/nawidbayat73/Stillwater/downloads-inszenierung'
-$checksums=Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/nawidbayat73/Stillwater/downloads-inszenierung/SHA256SUMS.txt'
+$name='Stillwater-Materialien-Windows.zip'
+$source='https://media.githubusercontent.com/media/nawidbayat73/Stillwater/downloads-materialien'
+$checksums=Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/nawidbayat73/Stillwater/downloads-materialien/SHA256SUMS.txt'
 $pattern='(?m)^([a-fA-F0-9]{64}) +'+[regex]::Escape($name)+'\r?$'
 $match=[regex]::Match([string]$checksums,$pattern)
 if (!$match.Success) { throw 'Die Pruefsumme ist zurzeit nicht erreichbar.' }
@@ -37,6 +37,6 @@ if (!(Test-Path -LiteralPath $archive)) {
 if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash -ne $expected) {
     throw 'Die vorhandene ZIP-Datei passt nicht. Benenne sie um und starte die BAT erneut.'
 }
-$target=Join-Path $root 'Stillwater-Inszenierung'
+$target=Join-Path $root 'Stillwater-Materialien'
 Expand-Archive -LiteralPath $archive -DestinationPath $target -Force
 Write-Host "Fertig. Starte $exe im Ordner $target."

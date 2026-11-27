@@ -47,7 +47,7 @@ func run() -> void:
 	original=game.original
 	original.start_new()
 	original.interface.fade.color.a=0.0
-	for i in 23: await RenderingServer.frame_post_draw
+	await create_timer(.84).timeout
 	await shot("00-kapitelbeginn")
 	game.direction.reveal_clock=-1.0
 	original.interface.hide()
@@ -65,6 +65,8 @@ func run() -> void:
 	original.arrival.land()
 	await original_view("03-landgang",Vector3(25.32,2.01,-14.14),Vector3(16.05,.86,-14.35),game.direction.harbor_env,76)
 	await original_view("04-kuestenstrasse",Vector3(1.63,1.91,12.90),Vector3(-5.15,1.29,6.78),game.direction.harbor_env)
+	await original_view("04-lieferwagen",Vector3(1.73,1.81,23.67),Vector3(5.01,1.13,20.99),game.direction.harbor_env,72)
+	await original_view("04-fischerhaus",Vector3(-5.88,1.70,8.42),Vector3(-10.11,1.38,8.3),game.direction.harbor_env,76)
 	game.direction.look_and_lighting("play",2,10,Vector3(28,1,-49.0))
 	await original_view("05-blackcliff",Vector3(30.38,9.45,-44.60),Vector3(43.72,9.21,-53.67),game.direction.hill_env,66)
 	await original_view("06-funkwarte",Vector3(50.71,2.54,-33.92),Vector3(52.29,2.01,-35.40),game.direction.hill_env,76)

@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode cull_disabled, diffuse_burley;
+render_mode cull_disabled, diffuse_burley, specular_disabled;
 
 uniform vec3 deep : source_color = vec3(.112,.252,.294);
 uniform vec3 horizon : source_color = vec3(.355,.463,.491);
@@ -50,8 +50,11 @@ void fragment() {
 	foam*=1.0-smoothstep(.03,1.80+clamp(tide,0.0,.4),shore);
 	vec3 colour=mix(deep,horizon,sheen*.72);
 	colour=mix(colour,vec3(.48,.55,.53),foam*(.22+noise2(q*15.0)*.32));
+	vec3 reflection=reflect(-normalize((INV_VIEW_MATRIX*vec4(VIEW,0.0)).xyz),n);
+	float opening=pow(max(dot(reflection,normalize(vec3(-.78,.11,.53))),0.0),11.0);
+	float shimmer=smoothstep(.18,.81,gust)*sheen*opening;
 	ALBEDO=colour*(.90+gust*.18);
-	EMISSION=colour*(.07+sheen*.15);
+	EMISSION=colour*(.10+sheen*.18)+vec3(.16,.18,.18)*shimmer;
 	METALLIC=.06;
 	ROUGHNESS=.33+gust*.25;
 	SPECULAR=.35;

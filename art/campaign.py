@@ -85,7 +85,7 @@ def emergency_beacon(m,x,y,z,red=True,small=False):
     m.light((x,y+.47*scale,z),"#ee624c" if red else "#f7c58b",1.30 if red else .94,4.2 if small else 6.4,False)
 
 
-def case(m,x,y,z,w=.56,d=.37,h=.25,material="deep_steel",yaw=0):
+def case(m,x,y,z,w=.56,d=.37,h=.25,material="deep_steel",yaw=0,solid=False):
     def at(dx,dy,dz):
         xx,yy,zz=rotate_y((dx,dy,dz),yaw)
         return x+xx,y+yy,z+zz
@@ -95,6 +95,8 @@ def case(m,x,y,z,w=.56,d=.37,h=.25,material="deep_steel",yaw=0):
         m.box(at(side*w*.33,h*.69,d*.515),(.033,.072,.016),"brass",False,yaw)
     points=[at(-w*.119,h*.42,d*.53),at(-w*.14,h*.31,d*.61),at(w*.14,h*.31,d*.61),at(w*.119,h*.42,d*.53)]
     m.rope(points,.017,"tar",7)
+    if solid:
+        m.collision(at(0,h*.52,0),(w,h,d),yaw)
 
 
 def mooring_pile(m,x,z,y_base=-1.50):
@@ -103,6 +105,7 @@ def mooring_pile(m,x,z,y_base=-1.50):
     m.revolve((x,.227,z),[(0,.166),(.101,.166)],"rope",12)
     for j in range(4):
         m.hoop((x,.255+j*.029,z),.166,.014,"rope","y",19)
+    m.collision((x,.31,z),(.265,.75,.265))
 
 
 def arrival():
@@ -164,7 +167,7 @@ def arrival():
         fence.hoop((x,-.044,z),.08,.025,"brass","y")
         fence.tube((x,-.316,z),(x,-.163,z),.281,"ivory",20)
     for x,z in [(19.36,-17.19),(18.73,-17.91),(17.86,-11.12),(18.78,-10.32),(21.07,-15.01)]:
-        crate(fence,x,.027,z,.65,.43,.325,"driftwood")
+        crate(fence,x,.027,z,.65,.43,.325,"driftwood",True)
         coil(fence,x,.374,z,.19,.014,4)
     rnd=random.Random(33027)
     for x,z in [(20.5,-11.6),(21.4,-10.5),(20.4,-16.2),(21.4,-17.2),(18.7,-9.99),(19.9,-18.22)]:
@@ -187,10 +190,10 @@ def original_village():
         if x>5:
             coil(street,x-.226,.052,z+.145,.193,.019,4)
     street.sign("coast_guard",(-3.41,1.168,1.60),.83,.48,PI/2)
-    street.box((-3.43,.60,1.61),(.096,1.21,.102),"walnut")
+    street.box((-3.43,.60,1.61),(.096,1.21,.102),"walnut",True)
     for x,z in [(-3.65,11.7),(5.51,-9.55),(4.94,-22.11)]:
         fixture(street,(x,2.47,z),"bulb",1.5,6.35,shadow=False)
-        street.box((x,1.21,z),(.13,2.38,.145),"driftwood")
+        street.box((x,1.21,z),(.13,2.38,.145),"driftwood",True)
     # A practical fixing station occupies a quiet corner of the net shed yard.
     table(street,17.28,-27.05,1.80,.67,.772,"driftwood")
     net_panel(street,17.17,1.83,-27.75,1.91,1.21,.162,9,13)
@@ -234,8 +237,9 @@ def blackcliff():
     cliff.sign("fuel_oil",(34.266,6.66,-49.92),.61,.43,PI/2,"aged_steel")
     cliff.sign("coresheet",(40.806,6.76,-56.13),.69,.56,-PI/2)
     barrel(cliff,38.26,5.357,-53.95,.255,.65,"aged_steel")
+    cliff.collision((38.26,5.681,-53.95),(.44,.65,.44))
     coil(cliff,38.27,6.023,-53.94,.208,.018,4)
-    crate(cliff,35.41,5.365,-54.46,.64,.39,.36,"driftwood")
+    crate(cliff,35.41,5.365,-54.46,.64,.39,.36,"driftwood",True)
     fixture(cliff,(36.103,7.61,-53.95),"bulb",1.60,6.9)
     fixture(cliff,(42.976,7.42,-50.42),"bulb",1.51,6.2)
     fixture(cliff,(50.02,3.10,-32.91),"bulb",1.47,6.5)
@@ -247,14 +251,14 @@ def blackcliff():
     rooms.sign("old_headland",(36.285,6.883,-59.401),.67,.45,0)
     rooms.sign("chart",(35.16,6.734,-57.42),.47,.36,PI/2)
     cup(rooms,36.115,6.278,-58.23,"ceramic_blue")
-    case(rooms,39.29,5.39,-57.78,.48,.29,.25,"sea_green",.34)
+    case(rooms,39.29,5.39,-57.78,.48,.29,.25,"sea_green",.34,True)
     boot_pair_at(rooms,39.81,5.376,-54.39)
     rooms.hoop((35.27,6.60,-49.611),.22,.048,"rope",segments=20)
     meter(rooms,38.055,6.623,-51.139,.163,face="glass_amber",phase=-.63)
     meter(rooms,38.438,6.613,-51.139,.122,face="glass_amber",phase=.88)
     rooms.rope([(38.05,6.55,-51.194),(38.03,5.99,-51.21),(37.87,5.77,-50.81),
         (37.25,5.77,-50.74)],.031,"copper",8)
-    case(rooms,35.002,5.39,-50.96,.55,.31,.23,"garnet",.27)
+    case(rooms,35.002,5.39,-50.96,.55,.31,.23,"garnet",.27,True)
     fixture(rooms,(37.47,7.31,-49.80),"bulb",1.12,5.4)
     rooms.sign("coresheet",(44.68,14.156,-54.73),.64,.49,0,"aged_steel")
     rooms.hoop((44.05,13.214,-53.15),2.09,.022,"brass","y",44)
@@ -286,8 +290,8 @@ def ship():
         fixture(deck,(x,y,z),"bulb",1.8,8.9,shadow=False)
     for y,z in [(2.66,-35.09),(2.73,-22.28),(2.68,-31.74)]:
         coil(deck,67.72,y,z,.25,.023,5)
-    case(deck,69.05,2.56,-34.26,.82,.43,.380,"sea_green",.083)
-    case(deck,66.42,2.58,-23.23,.83,.50,.44,"rust",.211)
+    case(deck,69.05,2.56,-34.26,.82,.43,.380,"sea_green",.083,True)
+    case(deck,66.42,2.58,-23.23,.83,.50,.44,"rust",.211,True)
     deck.sign("rigel_plan",(73.39,4.44,-39.45),.82,.48,0,"deep_steel")
     for x in (66.95,68.01,75.32,78.38,80.23):
         for j in range(9):
@@ -309,14 +313,14 @@ def ship():
     bridge.box((71.98,5.462,-46.76),(2.29,.027,1.49),"deep_steel")
     for i in range(8):
         bridge.box((70.95+i*.29,5.482,-46.05),(.14,.014,.044),"hazard")
-    bridge.soft((71.64,5.82,-47.85),(1.80,.71,.48),"aged_steel",.056)
+    bridge.soft((71.64,5.82,-47.85),(1.80,.71,.48),"aged_steel",.056,solid=True)
     bridge.box((71.64,6.199,-47.819),(1.91,.085,.64),"deep_steel")
     bridge.box((71.61,6.249,-47.68),(1.73,.029,.31),"oak")
     for x in (71.12,72.19):
         bridge.box((x,5.82,-47.59),(.78,.48,.05),"sea_green")
         for row in range(6):
             bridge.box((x,5.73+row*.046,-47.556),(.46,.017,.015),"coal")
-    bridge.soft((77.83,5.82,-47.79),(1.08,.71,.58),"aged_steel",.051)
+    bridge.soft((77.83,5.82,-47.79),(1.08,.71,.58),"aged_steel",.051,solid=True)
     bridge.box((77.82,6.23,-47.80),(1.17,.062,.67),"deep_steel")
     crt(bridge,77.66,6.262,-47.811,.86,19)
     for i in range(4):
@@ -325,7 +329,7 @@ def ship():
     cup(bridge,78.25,6.271,-47.86,"ceramic_blue")
     bridge.tube((77.99,5.43,-47.34),(77.99,6.32,-47.34),.026,"brass",12)
     for z in (-44.34,-45.69,-46.37):
-        bridge.soft((78.67,5.715,z),(.32,.55,.59),"sea_green",.050)
+        bridge.soft((78.67,5.715,z),(.32,.55,.59),"sea_green",.050,solid=True)
         bridge.box((78.45,5.535,z),(.145,.25,.55),"aged_steel")
     for x,z in [(71.68,-47.82),(72.28,-47.82)]:
         crt(bridge,x,6.372,z,.59,round(x*166))
@@ -348,7 +352,7 @@ def ship():
     for z in (-22.42,-19.19,-15.50):
         fixture(hold,(72.48,2.06,z),"glass_amber",1.37,5.55,color="#ebaa73")
     for x,z in [(71.5,-22.96),(72.2,-22.99),(77.28,-14.98)]:
-        crate(hold,x,.046,z,.57,.37,.32,"driftwood")
+        crate(hold,x,.046,z,.57,.37,.32,"driftwood",True)
         coil(hold,x+.09,.387,z,.154,.016,3)
     hold.sign("rigel_plan",(76.88,1.266,-13.886),.71,.35,PI)
     hold.sheet("maritime",(75.87,.972,-14.62),.235,.384,-.14)
@@ -377,22 +381,24 @@ def cave():
     m=region.mesh("Gezeitenstollen, Felsgewölbe und Treibholz")
     rng=random.Random(16111998)
     rings=[]
-    for i in range(31):
-        z=12.67-i*1.972
+    lengthwise,across=52,34
+    for i in range(lengthwise):
+        z=12.67-i*59.2/(lengthwise-1)
         z_phase=math.sin(z*.19)
         profile=[]
-        for j in range(23):
-            a=j*PI/22
-            rx=8.13+.52*z_phase+rng.uniform(-.31,.35)
-            height=4.11+.65*math.cos(z*.22)+rng.uniform(-.29,.30)
+        for j in range(across+1):
+            a=j*PI/across
+            rib=.27*math.sin(j*.58+z*.22)+.19*math.cos(j*1.9-z*.34)
+            rx=8.13+.52*z_phase+rib*.7+rng.uniform(-.15,.22)
+            height=4.11+.65*math.cos(z*.22)+rib+rng.uniform(-.11,.13)
             profile.append((rx*math.cos(a)-.19*math.sin(z*.12),
                             -.24+height*math.sin(a)+.16*math.cos(a*5+z*.24),
                             z+rng.uniform(-.16,.16)))
         rings.append(profile)
     for i in range(len(rings)-1):
-        for j in range(22):
+        for j in range(across):
             a,b,c,d=rings[i][j],rings[i][j+1],rings[i+1][j+1],rings[i+1][j]
-            m.add([a,b,c,d],[(0,1,2),(0,2,3)],"wet_stone" if (j+i)%5 else "cliff")
+            m.add([a,b,c,d],[(0,1,2),(0,2,3)],"wet_stone" if (j//3+i//5)%4 else "cliff")
     m.box((0,-.25,-17),(17,.50,59),"wet_stone",True)
     m.box((0,2.4,12.62),(17,4.8,.43),"wet_stone",True)
     m.box((0,2.4,-46.31),(17,4.8,.47),"cliff",True)
@@ -402,8 +408,10 @@ def cave():
             z=rng.uniform(-45.5,11.9)
             x=s*rng.uniform(6.68,8.13)
             h=rng.uniform(.35,1.36)
-            m.blob((x,.26+h*.36,z),(rng.uniform(.55,1.18),h,rng.uniform(.47,1.58)),
-                   "wet_stone" if i%3 else "cliff",rng,9,5,.24)
+            rx,rz=rng.uniform(.55,1.18),rng.uniform(.47,1.58)
+            m.blob((x,.26+h*.36,z),(rx,h,rz),"wet_stone" if i%3 else "cliff",rng,12,7,.23)
+            if h>.72:
+                m.collision((x,.26+h*.34,z),(rx*1.37,h*1.19,rz*1.35))
             if i%2==0:
                 ridge=s*rng.uniform(2.8,5.56)
                 y=3.74-.48*abs(ridge/5)+.43*math.sin(z*.25)
@@ -453,6 +461,7 @@ def cave():
             walk.box((6.014,1.166,z-1.203),(.070,.079,2.44),"zinc")
             walk.box((6.014,.586,z-1.196),(.059,.055,2.44),"wet_iron")
     walk.collision((4.87,.002,-22.57),(2.37,.062,41.45))
+    walk.collision((6.014,.65,-22.61),(.11,1.29,41.25))
     for j in range(22):
         x=rng.uniform(1.1,2.58)
         z=rng.uniform(-42.8,-4.5)
@@ -464,7 +473,7 @@ def cave():
     case(survey,5.78,.781,1.00,.56,.30,.241,"sea_green",.10)
     meter(survey,5.90,1.032,1.136,.087,face="glass_amber",phase=.51)
     coil(survey,6.04,.789,1.29,.135,.011,4,"net")
-    crate(survey,6.21,.014,.04,.61,.41,.35,"driftwood")
+    crate(survey,6.21,.014,.04,.61,.41,.35,"driftwood",True)
     emergency_beacon(survey,5.47,.785,1.162,False,True)
     for x in (-4.63,-2.61):
         survey.box((x,.215,-12.78),(1.21,.39,1.78),"fieldstone")
@@ -600,6 +609,7 @@ def turbine_room(m,x,z,soft=False):
     for j in range(2):
         xx=x+1.37*j-.54
         m.box((xx,.15,z),(1.12,.30,2.28),"concrete",True)
+        m.collision((xx,.659,z),(.79,1.03,1.85))
         m.revolve((xx,.69,z-1.02),[(0,.377),(.124,.413),(.636,.425),(1.72,.436),(1.82,.322)],
                   "aged_steel" if soft else "deep_steel",20,(0,0,1))
         for i in range(10):
@@ -657,6 +667,20 @@ def platform():
             z=11.55-i*3.53
             spine.box((x,.011,z),(.74,.020,2.62),"deep_steel")
             spine.rope([(x,2.91,z),(x-side*.11,2.931,z-.92),(x-side*.15,2.96,z-2.62),(x,2.91,z-3.53)],.027,"conduit",7)
+    for j in range(17):
+        z=11.3-j*3.31
+        for s in (-1,1):
+            x=s*2.398
+            spine.soft((x,2.48,z),(.25,.386,.221),"aged_steel",.037)
+            spine.tube((x-s*.13,2.65,z),(x-s*.13,2.29,z),.026,"zinc",9)
+            for u in (-.079,.072):
+                spine.rope([(x,2.887,z),(x-s*.165,2.712,z+u),(x-s*.126,2.51,z+u)],.019,"copper" if j%3 else "rust",8)
+    for x,z in [(1.96,7.77),(-2.04,-2.32),(1.99,-15.31),(-2.06,-26.83),(1.95,-38.65)]:
+        spine.soft((x,.358,z),(.436,.717,.569),"deep_steel",.065,solid=True)
+        spine.soft((x,.726,z),(.45,.06,.57),"sand_enamel",.020)
+        for i in range(6):
+            spine.box((x,.53-.041*i,z+.292),(.241,.021,.019),"aged_steel")
+        spine.revolve((x+.12,.68,z+.301),[(0,.019),(.012,.018)],"signal",9,(0,0,1))
     for i in range(5):
         z=5.7-i*9.0
         for side in (-1,1):
@@ -728,6 +752,16 @@ def resonance():
                 fixture(core,(x-side*1.29,2.46,z),"glass_amber",1.4,6.05,color="#ebaf78")
     for r,w in ((2.39,.11),(3.15,.061),(5.03,.067),(7.83,.040)):
         core.hoop((0,.031,-1.83),r,w,"brass" if r>3 else "volt","y",64)
+    for i in range(18):
+        a,b=TAU*i/18,TAU*(i+1)/18
+        x,z=2.68*math.cos(a),2.68*math.sin(a)-1.83
+        next_x,next_z=2.68*math.cos(b),2.68*math.sin(b)-1.83
+        core.revolve((x,.012,z),[(0,.113),(.11,.132),(.189,.078),(.81,.064),(.85,.086)],"deep_steel",14)
+        for y in (.327,.838):
+            core.tube((x,y,z),(next_x,y,next_z),.042 if y<.4 else .061,"aged_steel",12)
+        segment=math.hypot(next_x-x,next_z-z)+.064
+        core.collision(((x+next_x)/2,.422,(z+next_z)/2),(segment,.852,.103),
+                       -math.atan2(next_z-z,next_x-x))
     for i in range(24):
         a=i*TAU/24
         u=math.sin(a); v=math.cos(a)
@@ -771,6 +805,7 @@ def control():
     region=Set("instruments")
     terminal=region.mesh("ServiceConsole")
     service_panel(terminal,0,0,0,1.04,.66,1.125)
+    terminal.collision((0,.552,0),(1.04,1.08,.68))
     return region
 
 

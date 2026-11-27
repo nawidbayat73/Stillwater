@@ -6,6 +6,7 @@ import math
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from photographic import game_maps, photo, photo_normal
 
 # The tile size is in meters. Large grain, joints and inks stay in scale in all four sets.
 SURFACES = {
@@ -55,6 +56,10 @@ SURFACES = {
     "dust": ("656a61", "plaster", .92, 1.9),
     "rug": ("787978", "rug", .92, 1.0),
     "diamond_plate": ("6b7370", "diamond", .54, 1.35),
+    "bark": ("655947", "bark", .91, 1.7),
+    "vehicle_paint": ("547779", "metal", .46, 2.56),
+    "vehicle_cream": ("c7c2a7", "metal", .48, 2.56),
+    "cargo_panel": ("88574a", "metal", .62, 1.9),
 }
 
 CARDS = [
@@ -98,6 +103,16 @@ CARDS = [
 
 SIZE = 384
 CARD_ROWS = math.ceil(len(CARDS)/4)
+PHOTO_SURFACES = {
+    'painted': ('siding', .77), 'wood': ('timber', .58), 'planks': ('timber', .43),
+    'stone': ('stone', .89), 'gravel': ('sand', .47), 'plaster': ('plaster', .58),
+    'metal': ('metal', .60), 'brick': ('brick', .72), 'shingle': ('roof', .88), 'bark': ('bark', .91),
+}
+PHOTO_OVERRIDES = {
+    'asphalt': ('road', .73), 'cargo_panel': ('metal', .69),
+    'teal_leather': ('leather', .58), 'zinc': ('metal', .43),
+    'vehicle_paint': ('metal', .16), 'vehicle_cream': ('metal', .13),
+}
 
 
 def tiled_noise(rng, n, height, width=None):
@@ -216,11 +231,20 @@ def tile_surfaces(directory):
             pixels=((1-p)*base+p*np.array(ink))*(1+patina[...,None])
         else:
             pixels=base*(1+patina[...,None])
+        photograph = PHOTO_OVERRIDES.get(name, PHOTO_SURFACES.get(kind))
+        if photograph:
+            texture, weight = photograph
+            fine, chroma = photo(texture,SIZE)
+            dyed=base*(1+.91*fine[...,None])+.19*chroma
+            pixels=pixels*(1-weight)+dyed*weight
         Image.fromarray(np.uint8(np.clip(pixels,0,255))).save(directory/f"{name}.jpg",quality=91,subsampling=0,optimize=True)
-        if kind not in ("fabric","lace","wallpaper","rug","shingle"):
+        if photograph or kind not in ("fabric","lace","wallpaper","rug","shingle"):
             dx=(np.roll(elevation,-1,1)-np.roll(elevation,1,1))*1.65
             dy=(np.roll(elevation,-1,0)-np.roll(elevation,1,0))*1.65
             normal=np.stack((-dx,dy,np.ones_like(dx)),axis=-1)
+            if photograph:
+                scanned=photo_normal(texture,SIZE)
+                normal=normal*(1-weight)+scanned*weight
             normal=normal/np.sqrt((normal**2).sum(axis=2,keepdims=True))
             Image.fromarray(np.uint8(np.clip(normal*.5*255+127.5,0,255))).save(directory/f"{name}_n.png",optimize=True)
 
@@ -329,11 +353,14 @@ def make_rug(directory):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output",type=Path)
+    parser.add_argument("--game-maps",type=Path)
     args=parser.parse_args()
     args.output.mkdir(parents=True,exist_ok=True)
     tile_surfaces(args.output)
     print_cards(args.output)
     make_rug(args.output)
+    if args.game_maps:
+        game_maps(args.game_maps)
 
 
 if __name__=="__main__":

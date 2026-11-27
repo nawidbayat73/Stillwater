@@ -12,6 +12,7 @@ const ShoreArtwork = preload("res://shore_art.gd")
 const SAVE := "user://last_tide_restored.cfg"
 
 var base
+var coast: RefCounted
 var shore_art := ShoreArtwork.new()
 var area: Node3D
 var body: CharacterBody3D
@@ -277,7 +278,11 @@ func set_atmosphere(day := false, storm := false) -> void:
 	light.light_color=Color("#ffdcaa") if day else Color("#8db9c8")
 
 func old_mesh(id: String, pos: Vector3, yaw := 0.0, scale_factor := 1.0, solid := true) -> Node3D:
-	return base.world.place(id,pos,yaw,solid,scale_factor,area)
+	var prop: Node3D=base.world.place(id,pos,yaw,solid,scale_factor,area)
+	for part in prop.get_children():
+		if part is MeshInstance3D and part.mesh==base.world.meshes[id]:
+			coast.apply_to(part,id,solid)
+	return prop
 
 func plate(id: String, pos: Vector3, caption: String, size := Vector3(.85,.62,.40)) -> void:
 	var use:=Area3D.new()
@@ -296,8 +301,6 @@ func plate(id: String, pos: Vector3, caption: String, size := Vector3(.85,.62,.4
 	actions[id]=caption
 
 func control(id: String, pos: Vector3, title: String, hint: String) -> void:
-	# The same cabinet casting is repainted for each site, with the original control hit area.
-	shore_art.add_colliders(area,[[pos.x,pos.y+.421,pos.z,.95,.842,.64,0]])
 	var face:=Node3D.new()
 	area.add_child(face)
 	face.position=pos
@@ -373,6 +376,7 @@ func figure(at: Vector3, drowned: bool, yaw: float) -> Node3D:
 	actor.position=at
 	actor.rotation.y=yaw
 	actor.build(drowned,Color("#a66456"))
+	coast.dress_figure(actor)
 	actor.pose("idle",.74)
 	return actor
 
@@ -506,6 +510,7 @@ func shore(storm: bool) -> void:
 		for id: String in entries:
 			plate(id,shore_art.point_at("ufer",id),entries[id],Vector3(.71,.50,.53))
 		var mara:=figure(shore_art.point_at("ufer","mara"),false,PI)
+		shore_art.add_colliders(mara,[[0.0,.85,0.0,.44,1.7,.34,0.0]])
 		plate("mara",mara.position+Vector3(0,1,-.32),"Mit Mara sprechen",Vector3(.72,1.7,.59))
 		for i in 3:
 			scene_data["resident"+str(i)]=figure(Vector3(-26+i*16,.11,-4.2+i*2),false,PI/2)

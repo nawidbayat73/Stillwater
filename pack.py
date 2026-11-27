@@ -22,9 +22,18 @@ def assemble(base, target):
         path = directory.read(length).rstrip(b"\0").decode()
         offset, length, digest, flag = struct.unpack("<QQ16sI", directory.read(36))
         files[path] = (offset, length, digest, flag)
-    for resource_name in ("ufer.glb","sturm.glb","ufer.json","sturm.json"):
-        if not (Path(__file__).resolve().parent/"game"/"scenery"/resource_name).is_file():
-            raise FileNotFoundError(f"Build scenery first: missing {resource_name}")
+    game = Path(__file__).resolve().parent/"game"
+    scenery = ("ufer", "sturm", "landfall", "launch", "chapter1", "chapter2", "chapter3", "rigel_medic",
+               "chapter4", "chapter5", "chapter7", "instruments", "coastal_props", "coastal_street")
+    for model in scenery:
+        for suffix in ("glb", "json"):
+            name = f"scenery/{model}.{suffix}"
+            if not (game/name).is_file():
+                raise FileNotFoundError(f"Build scenery first: missing {name}")
+    for kind in ("siding", "timber", "bark", "stone", "plaster", "brick", "road", "sand", "metal", "corrugated", "leather"):
+        for map_suffix in (".jpg", "_n.jpg"):
+            if not (game/f"finish/{kind}{map_suffix}").is_file():
+                raise FileNotFoundError(f"Build photographic materials first: missing {kind}{map_suffix}")
     content = bytearray(pack[:table])
     def add(name, data):
         content.extend(bytes(-len(content) % 16))
@@ -33,8 +42,6 @@ def assemble(base, target):
     offset, length, _, _ = files.pop("main.tscn.remap")
     remap = pack[origin+offset:origin+offset+length].decode()
     old_scene = re.search(r'path="([^"]+)"', remap)[1]
-    root = Path(__file__).resolve().parent
-    game = root/"game"
     for file in sorted(game.rglob("*")):
         if file.is_file():
             data = file.read_bytes()

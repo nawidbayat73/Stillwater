@@ -152,7 +152,12 @@ class Mesh:
     def add(self, verts, faces, key, uv=None, smooth=False):
         start=len(self.verts)
         self.verts.extend(point(v) for v in verts)
+        seen=set()
         for i, face in enumerate(faces):
+            indices=frozenset(face)
+            if len(indices)!=len(face) or indices in seen:
+                continue
+            seen.add(indices)
             coords=[verts[j] for j in face]
             mapping=uv[i] if uv else self.project(coords,key)
             if len(face)>4:
